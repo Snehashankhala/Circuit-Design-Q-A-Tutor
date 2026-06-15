@@ -44,3 +44,8 @@ An AI-powered interactive tutoring application where students can describe circu
 ---
 
 ## 📁 Project Structure
+<img width="1500" height="677" alt="image" src="https://github.com/user-attachments/assets/f9ccc3f5-b57a-48cc-9bf7-87456cf969ad" />
+<img width="1507" height="486" alt="image" src="https://github.com/user-attachments/assets/f93f0a9a-285d-4896-b426-ef525a48545c" />
+<img width="1499" height="347" alt="image" src="https://github.com/user-attachments/assets/75c33788-5c39-4fed-ba06-a9ec3e3b0807" />
+
+
