@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Design Q&A Tutor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #fff; min-height: 100vh; }
+
+        .header { background: #1a1d2e; padding: 16px 40px; border-bottom: 2px solid #00d4ff; display: flex; align-items: center; justify-content: space-between; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header h1 { font-size: 22px; color: #00d4ff; }
+        .nav-tabs { display: flex; gap: 8px; }
+        .nav-tab { padding: 8px 18px; border-radius: 8px; border: 1px solid #2a2d3e; background: none; color: #aaa; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .nav-tab.active { background: #00d4ff22; color: #00d4ff; border-color: #00d4ff; }
+
+        .page { display: none; max-width: 950px; margin: 30px auto; padding: 0 20px; }
+        .page.active { display: block; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }
+        .stat-card { background: #1a1d2e; border-radius: 12px; padding: 24px; border: 1px solid #2a2d3e; text-align: center; }
+        .stat-card .number { font-size: 36px; font-weight: bold; color: #00d4ff; }
+        .stat-card .label { color: #aaa; font-size: 13px; margin-top: 6px; }
+        .recent-title { color: #00d4ff; font-size: 16px; margin-bottom: 16px; }
+
+        .ask-card { background: #1a1d2e; border-radius: 16px; padding: 28px; margin-bottom: 24px; border: 1px solid #2a2d3e; }
+        .topic-select { width: 100%; padding: 12px; background: #0f1117; border: 1px solid #2a2d3e; border-radius: 8px; color: #fff; font-size: 14px; margin-bottom: 14px; }
+        .topic-select:focus { outline: none; border-color: #00d4ff; }
+        textarea { width: 100%; padding: 14px; background: #0f1117; border: 1px solid #2a2d3e; border-radius: 8px; color: #fff; font-size: 14px; resize: vertical; min-height: 120px; font-family: inherit; }
+        textarea:focus { outline: none; border-color: #00d4ff; }
+        textarea::placeholder { color: #555; }
+        .ask-btn { margin-top: 14px; width: 100%; padding: 14px; background: linear-gradient(135deg, #00d4ff, #0099bb); border: none; border-radius: 8px; color: #000; font-size: 15px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        .ask-btn:hover { opacity: 0.9; }
+        .ask-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .upload-area { border: 2px dashed #2a2d3e; border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; transition: border-color 0.2s; margin-bottom: 14px; position: relative; }
+        .upload-area:hover { border-color: #00d4ff; }
+        .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+        .upload-area .upload-icon { font-size: 36px; margin-bottom: 8px; }
+        .upload-area p { color: #aaa; font-size: 14px; }
+        .upload-area .file-name { color: #00d4ff; font-size: 13px; margin-top: 6px; }
+        .preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px; margin-bottom: 14px; display: none; border: 1px solid #2a2d3e; }
+        .analyze-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #a855f7, #7c3aed); border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        .analyze-btn:hover { opacity: 0.9; }
+        .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .mode-tab { padding: 8px 20px; border-radius: 8px; border: 1px solid #2a2d3e; background: none; color: #aaa; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .mode-tab.active { background: #00d4ff22; color: #00d4ff; border-color: #00d4ff; }
+        .mode-section { display: none; }
+        .mode-section.active { display: block; }
+
+        .loading { text-align: center; padding: 20px; color: #00d4ff; display: none; }
+        .response-card { background: #1a1d2e; border-radius: 16px; padding: 28px; margin-bottom: 24px; border: 1px solid #00d4ff; display: none; }
+        .response-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .response-header h2 { color: #00d4ff; font-size: 17px; }
+        .response-actions { display: flex; gap: 8px; }
+        .action-btn { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; }
+        .save-btn { background: #00d4ff22; color: #00d4ff; border: 1px solid #00d4ff44; }
+        .save-btn:hover { background: #00d4ff33; }
+        .pdf-btn { background: #ff6b3522; color: #ff6b35; border: 1px solid #ff6b3544; }
+        .pdf-btn:hover { background: #ff6b3533; }
+        .response-text { line-height: 1.8; color: #ccc; font-size: 14px; }
+        .response-text h1,.response-text h2,.response-text h3 { color: #00d4ff; margin: 16px 0 8px; }
+        .response-text p { margin-bottom: 10px; }
+        .response-text code { background: #0f1117; padding: 2px 6px; border-radius: 4px; color: #ff6b35; font-size: 13px; }
+        .response-text pre { background: #0f1117; padding: 14px; border-radius: 8px; margin: 10px 0; overflow-x: auto; }
+        .response-text strong { color: #fff; }
+        .response-text ul, .response-text ol { padding-left: 20px; margin-bottom: 10px; }
+
+        .section-title { color: #00d4ff; font-size: 17px; margin-bottom: 18px; }
+        .history-item { background: #1a1d2e; border-radius: 12px; padding: 18px; margin-bottom: 14px; border: 1px solid #2a2d3e; transition: border-color 0.2s; }
+        .history-item:hover { border-color: #00d4ff44; }
+        .history-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .topic-tag { background: #00d4ff22; color: #00d4ff; padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+        .topic-tag.image { background: #a855f722; color: #a855f7; }
+        .history-actions { display: flex; gap: 6px; }
+        .view-btn { background: #00d4ff22; color: #00d4ff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .hist-pdf-btn { background: #ff6b3522; color: #ff6b35; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .hist-save-btn { background: #a855f722; color: #a855f7; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .delete-btn { background: #ff444422; color: #ff4444; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .history-question { color: #fff; font-size: 14px; margin-bottom: 6px; }
+        .history-date { color: #555; font-size: 12px; }
+        .empty { text-align: center; color: #555; padding: 40px; }
+
+        .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .note-card { background: #1a1d2e; border-radius: 12px; padding: 18px; border: 1px solid #a855f744; }
+        .note-card .note-topic { color: #a855f7; font-size: 12px; margin-bottom: 8px; }
+        .note-card .note-question { color: #fff; font-size: 14px; margin-bottom: 10px; font-weight: 500; }
+        .note-card .note-preview { color: #aaa; font-size: 13px; line-height: 1.6; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .note-actions { display: flex; gap: 6px; }
+        .note-view-btn { background: #a855f722; color: #a855f7; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .note-pdf-btn { background: #ff6b3522; color: #ff6b35; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .note-delete-btn { background: #ff444422; color: #ff4444; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000bb; z-index: 100; justify-content: center; align-items: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: #1a1d2e; border-radius: 16px; padding: 28px; max-width: 720px; width: 90%; max-height: 82vh; overflow-y: auto; border: 1px solid #00d4ff; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .modal-header h3 { color: #00d4ff; }
+        .modal-header-actions { display: flex; gap: 8px; align-items: center; }
+        .close-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+        .modal-body { color: #ccc; line-height: 1.8; font-size: 14px; }
+        .modal-body h1,.modal-body h2,.modal-body h3 { color: #00d4ff; margin: 14px 0 6px; }
+        .modal-body p { margin-bottom: 10px; }
+        .modal-body code { background: #0f1117; padding: 2px 6px; border-radius: 4px; color: #ff6b35; }
+        .modal-body pre { background: #0f1117; padding: 12px; border-radius: 8px; margin: 8px 0; overflow-x: auto; }
+        .modal-body strong { color: #fff; }
+        .modal-body ul, .modal-body ol { padding-left: 20px; margin-bottom: 10px; }
+
+        .toast { position: fixed; bottom: 30px; right: 30px; background: #00d4ff; color: #000; padding: 12px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; display: none; z-index: 999; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <span>⚡</span>
+        <h1>Circuit Design Q&A Tutor</h1>
+    </div>
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showPage('dashboard', this)">📊 Dashboard</button>
+        <button class="nav-tab" onclick="showPage('ask', this)">🔌 Ask</button>
+        <button class="nav-tab" onclick="showPage('history', this)">📚 History</button>
+        <button class="nav-tab" onclick="showPage('notes', this)">📌 Saved Notes</button>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="number" id="stat-total">0</div>
+            <div class="label">Total Questions</div>
+        </div>
+        <div class="stat-card">
+            <div class="number" id="stat-notes">0</div>
+            <div class="label">Saved Notes</div>
+        </div>
+        <div class="stat-card">
+            <div class="number" id="stat-topics">0</div>
+            <div class="label">Topics Covered</div>
+        </div>
+    </div>
+    <div class="recent-title">🕐 Recent Questions</div>
+    <div id="dashboard-recent"></div>
+</div>
+
+<!-- ASK PAGE -->
+<div class="page" id="page-ask">
+    <div class="ask-card">
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="showMode('text', this)">✏️ Ask Question</button>
+            <button class="mode-tab" onclick="showMode('image', this)">📸 Analyze Image</button>
+        </div>
+        <div class="mode-section active" id="mode-text">
+            <select class="topic-select" id="topic">
+                <option value="General">General</option>
+                <option value="Series Circuits">Series Circuits</option>
+                <option value="Parallel Circuits">Parallel Circuits</option>
+                <option value="RC Circuits">RC Circuits</option>
+                <option value="RL Circuits">RL Circuits</option>
+                <option value="RLC Circuits">RLC Circuits</option>
+                <option value="Ohm's Law">Ohm's Law</option>
+                <option value="Kirchhoff's Laws">Kirchhoff's Laws</option>
+                <option value="Transistors">Transistors</option>
+                <option value="Op-Amps">Op-Amps</option>
+            </select>
+            <textarea id="question" placeholder="Describe your circuit problem... e.g. I have a 9V battery with 3 resistors in series: 100Ω, 220Ω, 470Ω. Calculate current and voltage drops."></textarea>
+            <button class="ask-btn" id="askBtn" onclick="askQuestion()">⚡ Ask Tutor</button>
+        </div>
+        <div class="mode-section" id="mode-image">
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="imageFile" accept="image/*" onchange="handleFileSelect(event)">
+                <div class="upload-icon">📸</div>
+                <p>Click or drag & drop a circuit image here</p>
+                <p style="font-size:12px; color:#555; margin-top:4px;">Supports JPG, PNG, GIF</p>
+                <div class="file-name" id="fileName"></div>
+            </div>
+            <img id="previewImg" class="preview-img" alt="Preview">
+            <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()">🔍 Analyze Circuit Image</button>
+        </div>
+    </div>
+    <div class="loading" id="loading">⚡ Processing...</div>
+    <div class="response-card" id="responseCard">
+        <div class="response-header">
+            <h2 id="responseTitle">🧠 AI Explanation</h2>
+            <div class="response-actions">
+                <button class="action-btn save-btn" onclick="saveCurrentNote()">📌 Save Note</button>
+                <button class="action-btn pdf-btn" onclick="exportCurrentPDF()">📄 Export PDF</button>
+            </div>
+        </div>
+        <div class="response-text" id="responseText"></div>
+    </div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div class="page" id="page-history">
+    <div class="section-title">📚 Question History</div>
+    <div id="historyList"></div>
+</div>
+
+<!-- NOTES PAGE -->
+<div class="page" id="page-notes">
+    <div class="section-title">📌 Saved Notes</div>
+    <div class="notes-grid" id="notesList"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTopic"></h3>
+            <div class="modal-header-actions">
+                <button class="action-btn pdf-btn" onclick="exportModalPDF()">📄 PDF</button>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const API = 'http://localhost:8086/api/circuit';
+    let currentResponse = null;
+    let modalData = null;
+    let notes = JSON.parse(localStorage.getItem('circuit_notes') || '[]');
+    let selectedFile = null;
+
+    function showPage(page, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('page-' + page).classList.add('active');
+        if (btn) btn.classList.add('active');
+        if (page === 'dashboard') loadDashboard();
+        if (page === 'history') loadHistory();
+        if (page === 'notes') loadNotes();
+    }
+
+    function showMode(mode, btn) {
+        document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('mode-' + mode).classList.add('active');
+        if (btn) btn.classList.add('active');
+        document.getElementById('responseCard').style.display = 'none';
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2500);
+    }
+
+    function handleFileSelect(event) {
+        selectedFile = event.target.files[0];
+        if (!selectedFile) return;
+        document.getElementById('fileName').textContent = selectedFile.name;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.getElementById('previewImg');
+            img.src = e.target.result;
+            img.style.display = 'block';
+        };
+        reader.readAsDataURL(selectedFile);
+    }
+
+    async function analyzeImage() {
+        if (!selectedFile) { alert('Please select an image first!'); return; }
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('responseCard').style.display = 'none';
+        try {
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            const res = await fetch(`${API}/analyze-image`, { method: 'POST', body: formData });
+            const data = await res.json();
+            currentResponse = { topic: 'Image Analysis', question: 'Image: ' + selectedFile.name, aiResponse: data.analysis };
+            document.getElementById('responseTitle').textContent = '🔍 Circuit Image Analysis';
+            document.getElementById('responseText').innerHTML = marked.parse(data.analysis);
+            document.getElementById('responseCard').style.display = 'block';
+        } catch (e) {
+            alert('Error analyzing image!');
+        } finally {
+            document.getElementById('analyzeBtn').disabled = false;
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    async function askQuestion() {
+        const question = document.getElementById('question').value.trim();
+        const topic = document.getElementById('topic').value;
+        if (!question) { alert('Please enter a question!'); return; }
+        document.getElementById('askBtn').disabled = true;
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('responseCard').style.display = 'none';
+        try {
+            const res = await fetch(`${API}/ask`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question, topic })
+            });
+            const data = await res.json();
+            currentResponse = data;
+            document.getElementById('responseTitle').textContent = '🧠 AI Explanation';
+            document.getElementById('responseText').innerHTML = marked.parse(data.aiResponse);
+            document.getElementById('responseCard').style.display = 'block';
+        } catch (e) {
+            alert('Error connecting to server!');
+        } finally {
+            document.getElementById('askBtn').disabled = false;
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function saveCurrentNote() {
+        if (!currentResponse) return;
+        const note = { id: Date.now(), topic: currentResponse.topic, question: currentResponse.question, aiResponse: currentResponse.aiResponse, savedAt: new Date().toISOString() };
+        notes.unshift(note);
+        localStorage.setItem('circuit_notes', JSON.stringify(notes));
+        showToast('📌 Note saved!');
+    }
+
+    function saveNoteFromHistory(id, topic, question, aiResponse) {
+        const note = { id: Date.now(), topic, question, aiResponse, savedAt: new Date().toISOString() };
+        notes.unshift(note);
+        localStorage.setItem('circuit_notes', JSON.stringify(notes));
+        showToast('📌 Note saved!');
+    }
+
+    function deleteNote(id) {
+        notes = notes.filter(n => n.id !== id);
+        localStorage.setItem('circuit_notes', JSON.stringify(notes));
+        loadNotes();
+        showToast('🗑 Note deleted!');
+    }
+
+    function exportPDF(topic, question, aiResponse) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+        const maxWidth = pageWidth - margin * 2;
+        let y = 20;
+        doc.setFillColor(15, 17, 23);
+        doc.rect(0, 0, pageWidth, 297, 'F');
+        doc.setFontSize(18); doc.setTextColor(0, 212, 255);
+        doc.text('Circuit Design Q&A Tutor', margin, y); y += 10;
+        doc.setFontSize(13);
+        doc.text(`Topic: ${topic}`, margin, y); y += 8;
+        doc.setDrawColor(0, 212, 255);
+        doc.line(margin, y, pageWidth - margin, y); y += 8;
+        doc.setFontSize(12); doc.setTextColor(255, 255, 255);
+        doc.text('Question:', margin, y); y += 7;
+        doc.setTextColor(200, 200, 200); doc.setFontSize(11);
+        const qLines = doc.splitTextToSize(question, maxWidth);
+        doc.text(qLines, margin, y); y += qLines.length * 6 + 8;
+        doc.setFontSize(12); doc.setTextColor(255, 255, 255);
+        doc.text('AI Explanation:', margin, y); y += 7;
+        doc.setTextColor(200, 200, 200); doc.setFontSize(10);
+        const clean = aiResponse.replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/\*/g, '');
+        const lines = doc.splitTextToSize(clean, maxWidth);
+        lines.forEach(line => {
+            if (y > 275) { doc.addPage(); doc.setFillColor(15, 17, 23); doc.rect(0, 0, pageWidth, 297, 'F'); y = 20; }
+            doc.text(line, margin, y); y += 5.5;
+        });
+        doc.save(`circuit-${topic.replace(/\s+/g, '-')}.pdf`);
+        showToast('📄 PDF exported!');
+    }
+
+    function exportCurrentPDF() { if (currentResponse) exportPDF(currentResponse.topic, currentResponse.question, currentResponse.aiResponse); }
+    function exportModalPDF() { if (modalData) exportPDF(modalData.topic, modalData.question, modalData.aiResponse); }
+
+    function openModal(topic, question, aiResponse) {
+        modalData = { topic, question, aiResponse };
+        document.getElementById('modalTopic').textContent = topic;
+        document.getElementById('modalBody').innerHTML = `<p style="color:#aaa;margin-bottom:12px;font-style:italic">${question}</p>` + marked.parse(aiResponse);
+        document.getElementById('modal').classList.add('show');
+    }
+
+    function closeModal() { document.getElementById('modal').classList.remove('show'); modalData = null; }
+
+    function getTopicTag(topic) {
+        const isImage = topic === 'Image Analysis';
+        return `<span class="topic-tag ${isImage ? 'image' : ''}">${isImage ? '📸 ' : ''}${topic}</span>`;
+    }
+
+    function getQuestion(question) {
+        return question.startsWith('Image:')
+            ? `<div class="history-question">📸 ${question}</div>`
+            : `<div class="history-question">${question}</div>`;
+    }
+
+    async function loadHistory() {
+        const res = await fetch(`${API}/history`);
+        const data = await res.json();
+        const list = document.getElementById('historyList');
+        if (data.length === 0) { list.innerHTML = '<div class="empty">No questions yet!</div>'; return; }
+        list.innerHTML = data.map(item => `
+            <div class="history-item">
+                <div class="history-top">
+                    ${getTopicTag(item.topic)}
+                    <div class="history-actions">
+                        <button class="view-btn" onclick="openModal('${esc(item.topic)}','${esc(item.question)}','${esc(item.aiResponse)}')">👁 View</button>
+                        <button class="hist-save-btn" onclick="saveNoteFromHistory(${item.id},'${esc(item.topic)}','${esc(item.question)}','${esc(item.aiResponse)}')">📌 Save</button>
+                        <button class="hist-pdf-btn" onclick="exportPDF('${esc(item.topic)}','${esc(item.question)}','${esc(item.aiResponse)}')">📄 PDF</button>
+                        <button class="delete-btn" onclick="deleteHistory(${item.id})">🗑</button>
+                    </div>
+                </div>
+                ${getQuestion(item.question)}
+                <div class="history-date">${new Date(item.createdAt).toLocaleString()}</div>
+            </div>
+        `).join('');
+    }
+
+    async function deleteHistory(id) {
+        await fetch(`${API}/history/${id}`, { method: 'DELETE' });
+        loadHistory();
+        showToast('🗑 Deleted!');
+    }
+
+    function loadNotes() {
+        const list = document.getElementById('notesList');
+        if (notes.length === 0) { list.innerHTML = '<div class="empty">No saved notes yet!</div>'; return; }
+        list.innerHTML = notes.map(n => `
+            <div class="note-card">
+                <div class="note-topic">📌 ${n.topic}</div>
+                <div class="note-question">${n.question.startsWith('Image:') ? '📸 ' + n.question : n.question}</div>
+                <div class="note-preview">${n.aiResponse.replace(/#{1,3} /g, '').replace(/\*\*/g, '')}</div>
+                <div class="note-actions">
+                    <button class="note-view-btn" onclick="openModal('${esc(n.topic)}','${esc(n.question)}','${esc(n.aiResponse)}')">👁 View</button>
+                    <button class="note-pdf-btn" onclick="exportPDF('${esc(n.topic)}','${esc(n.question)}','${esc(n.aiResponse)}')">📄 PDF</button>
+                    <button class="note-delete-btn" onclick="deleteNote(${n.id})">🗑</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function loadDashboard() {
+        const res = await fetch(`${API}/history`);
+        const data = await res.json();
+        document.getElementById('stat-total').textContent = data.length;
+        document.getElementById('stat-notes').textContent = notes.length;
+        const topics = new Set(data.map(d => d.topic));
+        document.getElementById('stat-topics').textContent = topics.size;
+        const recent = document.getElementById('dashboard-recent');
+        if (data.length === 0) { recent.innerHTML = '<div class="empty">No questions yet. Go to Ask tab!</div>'; return; }
+        recent.innerHTML = data.slice(0, 5).map(item => `
+            <div class="history-item">
+                <div class="history-top">
+                    ${getTopicTag(item.topic)}
+                    <button class="view-btn" onclick="openModal('${esc(item.topic)}','${esc(item.question)}','${esc(item.aiResponse)}')">👁 View</button>
+                </div>
+                ${getQuestion(item.question)}
+                <div class="history-date">${new Date(item.createdAt).toLocaleString()}</div>
+            </div>
+        `).join('');
+    }
+
+    function esc(str) {
+        return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+    }
+
+    loadDashboard();
+</script>
+</body>
+</html>

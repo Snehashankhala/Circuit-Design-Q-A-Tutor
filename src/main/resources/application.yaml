@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/circuit_tutor
+    username: root
+    password: Shankhala123
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+groq:
+  api:
+    key: ${GROQ_API_KEY}
+    url: https://api.groq.com/openai/v1/chat/completions
+  model: llama-3.3-70b-versatile
+
+server:
+  port: 8086
